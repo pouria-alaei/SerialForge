@@ -38,16 +38,49 @@ namespace serialforge
 
     bool SerialConnection::open(const SerialPortSettings& settings)
     {
-        return true;
+        serial_port_.setBaudRate(settings.baud);
+        serial_port_.setParity(settings.parity);
+        serial_port_.setDataBits(settings.data_bits);
+        serial_port_.setStopBits(settings.stop_bits);
+        serial_port_.setFlowControl(settings.flow_control);
+        serial_port_.setParity(settings.parity);
+        serial_port_.setPortName(settings.path);
+        if (serial_port_.open(QIODevice::ReadWrite))
+        {
+            std::cout<<std::format("SerialPort::open({}) OK",settings.path.toStdString())<<std::endl;
+            opened_port_=settings.path;
+            last_settings_ = settings;
+            isOpen_ = true;
+            return true;
+        }else
+        {
+            std::cerr<<std::format("SerialPort::open({}) error ",settings.path.toStdString())<< std::endl;
+            return false;
+        }
     }
 
-    void SerialConnection::close()
+    void SerialConnection::close(const bool& byUser)
     {
+        if (byUser)
+        {
+            reopen_ = false;
+            opened_port_.clear();
+        }
+
+        if (!serial_port_.isOpen())
+        {
+            return;
+        }
+
+        serial_port_.close();
+        isOpen_=false;
+
+        std::cout << "SerialPort::close() OK" << std::endl;
     }
 
     bool SerialConnection::isOpen()const
     {
-        return true;
+        return isOpen_;
     }
 
     qint64 SerialConnection::send(const QByteArray& data)
@@ -103,8 +136,36 @@ namespace serialforge
         }
     }
 
+
     void SerialConnection::waitForPortListChanged()
     {
+        std::vector<std::string> new_port_list = getPortList();
+        auto last_port = opened_port_.toStdString();
+        for (auto& p: new_port_list)
+        {
+            p = "/dev/" + p;
+            std::cout << "New Port After Change:" << p << std::endl;
+        }
+        if (isOpen())
+        {
+            std::cout << "Last open port" << opened_port_.toStdString() << std::endl;
+            reopen_ = true;
+            if(std::ranges::find(new_port_list, last_port)==new_port_list.end())
+            {
+                std::cerr << "Port disconnected closing port" << std::endl;
+                close(false);
+            }
+        }else
+        {
+            if(std::ranges::find(new_port_list, last_port)!=new_port_list.end())
+            {
+                if (reopen_){
+                    std::cout << "Port Connected Reopening" << std::endl;
+                    open(last_settings_);
+                    reopen_=false;
+                }
+            }
+        }
         ports_changed_semaphore_.acquire();
     }
 
