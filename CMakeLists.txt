@@ -11,12 +11,25 @@ find_package(Qt6 COMPONENTS
         Core
         Gui
         Widgets
+        SerialPort
         REQUIRED)
+set(CMAKE_AUTOUIC_SEARCH_PATHS
+        "${CMAKE_CURRENT_SOURCE_DIR}/ui"
+)
 
-add_executable(serialforge main.cpp)
+add_executable(serialforge src/main.cpp
+        src/mainwindow.cpp
+        inc/mainwindow.h
+        ui/mainwindow.ui
+        src/common.cpp
+        inc/common.h
+        src/SerialConnection.cpp
+        inc/SerialConnection.h
+)
 target_link_libraries(serialforge
         Qt::Core
         Qt::Gui
         Qt::Widgets
+        Qt::SerialPort
 )
 
