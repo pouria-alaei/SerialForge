@@ -127,3 +127,8 @@ This project is licensed under the MIT License.
 ---
 
 SerialForge aims to become a simple, reliable, and reusable serial communication foundation for desktop and embedded-development tools.
+
+## License
+
+SerialForge is released under the [0BSD License](LICENSE).  
+Use it, modify it, distribute it, or include it in commercial projects without attribution.
