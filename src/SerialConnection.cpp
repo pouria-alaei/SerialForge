@@ -170,6 +170,16 @@ namespace serialforge
         }
     }
 
+    QByteArray SerialConnection::waitForData()
+    {
+        rx_semaphore_.acquire();
+        std::lock_guard<std::mutex> lock(rx_mutex_);
+
+        QByteArray data = std::move(rx_queue_.front());
+        rx_queue_.pop();
+
+        return data;
+    }
 
     void SerialConnection::waitForPortListChanged()
     {
@@ -347,6 +357,27 @@ namespace serialforge
 
             }
 
+            QByteArray rxData {};
+            if (serial_port_!=nullptr)
+            {
+                if (serial_port_->isOpen())
+                {
+                    if (serial_port_->waitForReadyRead(5))rxData=serial_port_->readAll();
+                }
+            }
+
+
+
+            if (!rxData.isEmpty())
+            {
+                {
+                    std::lock_guard<std::mutex> lock(rx_mutex_);
+                    rx_queue_.push(rxData);
+                }
+                rx_semaphore_.release();
+            }
+
+
             if (std::chrono::steady_clock::now() - updatePortsTickStart >= PORTS_UPDATE_INTERVAL)
             {
                 updatePortsTickStart = std::chrono::steady_clock::now();
@@ -371,10 +402,10 @@ namespace serialforge
                     ports_changed_semaphore_.release();
                 }
             }
-            if (serial_port_->isOpen())
-                serial_port_->close();
-
-            serial_port_.reset();
         }
+        if (serial_port_->isOpen())
+            serial_port_->close();
+
+        serial_port_.reset();
     }
 }

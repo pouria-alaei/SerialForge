@@ -15,6 +15,19 @@ namespace
       cout << "serial ports change detected" << endl;
     }
   }
+
+  void serialRXDataThread(SerialConnection& serial_connection)
+  {
+    while (true)
+    {
+        QByteArray data = serial_connection.waitForData();
+        // if (!data.isEmpty())
+        // {
+            cout << "RX_DATA_SIZE:" << data.toStdString().size() << endl;
+            cout << "RX_DATA:" << data.toStdString() << endl;
+        // }
+    }
+  }
 }
 
 int main(int argc, char *argv[]) {
@@ -32,9 +45,12 @@ int main(int argc, char *argv[]) {
 
   main_window.show();
   auto updatePortsListThread = std::thread(&updatePortListLoop, std::ref(serial_connection));
+  auto serialRXThread = std::thread(&serialRXDataThread, std::ref(serial_connection));
+
   while (true)
   {
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    serial_connection.send("Pouria");
+    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
   }
 
   return 0;

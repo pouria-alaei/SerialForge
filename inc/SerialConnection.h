@@ -79,6 +79,11 @@ namespace serialforge
         bool scheduled_ {false};
         bool txError_ {false};
 
+        std::queue<QByteArray> rx_queue_;
+        std::mutex rx_mutex_;
+        std::counting_semaphore<> rx_semaphore_{0};
+
+
     public:
 
         SerialConnection();
@@ -96,6 +101,7 @@ namespace serialforge
         void waitForPortListChanged();
         bool setSchedule(const std::vector<SerialTXRequest>& serial_tx_requests,const bool loop, const std::chrono::milliseconds interval);
         void clearSchedule();
+        QByteArray waitForData();
     };
 }
 
