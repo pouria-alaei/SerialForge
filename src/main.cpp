@@ -23,9 +23,10 @@ int main(int argc, char *argv[]) {
 
   SerialConnection serial_connection;
   SerialPortSettings serial_port_settings;
+  serial_connection.start();
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
   serial_port_settings.path = "/dev/cu.usbserial-0001";
   serial_port_settings.baud = QSerialPort::Baud115200;
-  serial_connection.start();
   serial_connection.open(serial_port_settings);
 
 

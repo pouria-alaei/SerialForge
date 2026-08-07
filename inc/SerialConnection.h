@@ -5,6 +5,7 @@
 #ifndef SERIALFORGE_SERIALCONNECTION_H
 #define SERIALFORGE_SERIALCONNECTION_H
 #include <QSerialPort>
+#include <queue>
 #include <thread>
 #include <semaphore>
 
@@ -20,13 +21,38 @@ namespace serialforge
         QSerialPort::FlowControl flow_control = QSerialPort::NoFlowControl;
     };
 
+    struct SerialTXRequest
+    {
+        QByteArray data;
+        std::chrono::steady_clock::time_point timeTag;
+        bool operator==(const SerialTXRequest&) const = default;
+    };
+
+    struct SerialTXCompare
+    {
+        bool operator()(const SerialTXRequest& a,
+                        const SerialTXRequest& b) const
+        {
+            return a.timeTag > b.timeTag;
+        }
+    };
+
+    struct SerialTXSchedule
+    {
+        std::vector<SerialTXRequest> requestsScript;
+        std::priority_queue<SerialTXRequest, std::vector<SerialTXRequest>, SerialTXCompare> runtime_queue {};
+        bool loop = false;
+        std::chrono::milliseconds interval {100};
+    };
+
     class SerialConnection
     {
 
         SerialConnection(const SerialConnection&) = delete;
         SerialConnection& operator=(const SerialConnection&) = delete;
 
-        QSerialPort serial_port_;
+        // QSerialPort serial_port_;
+        std::unique_ptr<QSerialPort> serial_port_;
         //std::thread worker_thread_;
         std::thread serial_thread_;
         void serialLoop();
@@ -35,9 +61,22 @@ namespace serialforge
         mutable std::mutex port_list_mutex_;
         std::binary_semaphore ports_changed_semaphore_ {0};
         QString opened_port_ {};
-        SerialPortSettings last_settings_;
+        SerialPortSettings local_settings_;
+        SerialPortSettings next_settings_;
         bool reopen_ {false};
         bool isOpen_ {false};
+        bool open_requested_ {false};
+        bool close_requested_ {false};
+        mutable std::mutex settings_mutex_;
+        mutable std::mutex tx_settings_mutex_;
+        bool tx_requested_ {false};
+        std::binary_semaphore requested_semaphore_ {0};
+        SerialTXSchedule local_schedule_;
+        SerialTXSchedule next_schedule_;
+        SerialTXRequest local_request_;
+        SerialTXRequest next_request_;
+        bool txError_ {false};
+
     public:
 
         SerialConnection();
@@ -53,6 +92,8 @@ namespace serialforge
         bool isRunning() const;
         std::vector<std::string> getPortList() const;
         void waitForPortListChanged();
+        bool setSchedule(const std::vector<SerialTXRequest>);
+
     };
 }
 
