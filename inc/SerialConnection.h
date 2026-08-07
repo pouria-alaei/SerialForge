@@ -43,6 +43,7 @@ namespace serialforge
         std::priority_queue<SerialTXRequest, std::vector<SerialTXRequest>, SerialTXCompare> runtime_queue {};
         bool loop = false;
         std::chrono::milliseconds interval {100};
+        bool restart {false};
     };
 
     class SerialConnection
@@ -75,6 +76,7 @@ namespace serialforge
         SerialTXSchedule next_schedule_;
         SerialTXRequest local_request_;
         SerialTXRequest next_request_;
+        bool scheduled_ {false};
         bool txError_ {false};
 
     public:
@@ -92,8 +94,8 @@ namespace serialforge
         bool isRunning() const;
         std::vector<std::string> getPortList() const;
         void waitForPortListChanged();
-        bool setSchedule(const std::vector<SerialTXRequest>);
-
+        bool setSchedule(const std::vector<SerialTXRequest>& serial_tx_requests,const bool loop, const std::chrono::milliseconds interval);
+        void clearSchedule();
     };
 }
 

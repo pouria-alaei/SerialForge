@@ -77,17 +77,31 @@ namespace serialforge
         return isOpen_;
     }
 
+
     qint64 SerialConnection::send(const QByteArray& data)
     {
         std::lock_guard<std::mutex> lock(tx_settings_mutex_);
         SerialTXRequest request;
         request.data = data;
         request.timeTag = std::chrono::steady_clock::now();
-        next_request_ = request;
+        if (next_request_==SerialTXRequest{})
+        {
+            next_request_ = request;
+        }else if (local_request_ == SerialTXRequest{})
+        {
+            local_request_ = next_request_;
+            next_request_ = request;
+        }else
+        {
+            scheduled_=true;
+            next_schedule_.runtime_queue.push(request);
+            next_schedule_.loop = false;
+        }
         tx_requested_ = true;
         requested_semaphore_.release();
         return 0;
     }
+
 
     std::vector<std::string> SerialConnection::getPortList() const
     {
@@ -95,6 +109,25 @@ namespace serialforge
         return port_list_;
     }
 
+    bool SerialConnection::setSchedule(const std::vector<SerialTXRequest>& serial_tx_requests,const bool loop, const std::chrono::milliseconds interval)
+    {
+        if (serial_tx_requests.empty())return false;
+        std::lock_guard<std::mutex> lock(tx_settings_mutex_);
+        next_schedule_ = {};
+        next_schedule_.interval = interval;
+        next_schedule_.loop = loop;
+        next_schedule_.requestsScript = serial_tx_requests;
+        requested_semaphore_.release();
+        return true;
+    }
+
+    void SerialConnection::clearSchedule()
+    {
+        std::lock_guard<std::mutex> lock(tx_settings_mutex_);
+        scheduled_ = false;
+        next_schedule_ = {};
+        local_schedule_ = {};
+    }
     namespace
     {
         std::vector<std::string> listPorts(fs::path path)
@@ -173,7 +206,6 @@ namespace serialforge
     void SerialConnection::serialLoop()
     {
         serial_port_ = std::make_unique<QSerialPort>();
-        requested_semaphore_.try_acquire_for(LOOP_SLEEP);
         const fs::path devPath {"/dev/"};
         {
             std::lock_guard<std::mutex> lock(port_list_mutex_);
@@ -184,8 +216,12 @@ namespace serialforge
             }
         }
         auto updatePortsTickStart = std::chrono::steady_clock::now();
+        auto updateScheduleLoopIntervalStart = std::chrono::steady_clock::now();
+        bool schedulePendingRestart {false};
         while (running_)
         {
+            requested_semaphore_.try_acquire_for(LOOP_SLEEP);
+
             if (close_requested_)
             {
                 close_requested_ = false;
@@ -259,6 +295,58 @@ namespace serialforge
                 }
             }
 
+            if (scheduled_)
+            {
+                if (next_schedule_.restart)
+                {
+                    std::lock_guard<std::mutex> lock(tx_settings_mutex_);
+                    std::chrono::milliseconds time_shift {};
+                    bool shift_calculated = false;
+                    for (auto& request : next_schedule_.requestsScript)
+                    {
+                        if (!shift_calculated)
+                        {
+                            shift_calculated=true;
+                            time_shift = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - request.timeTag);;
+                        }
+                        request.timeTag += time_shift;
+                        next_schedule_.runtime_queue.push(request);
+                    }
+                    local_schedule_.restart = false;
+                    local_schedule_ = next_schedule_;
+                    next_schedule_ = {};
+                    local_schedule_.restart = false;
+                    schedulePendingRestart = false;
+                }
+
+                if (local_schedule_.runtime_queue.empty() && local_schedule_.loop && !schedulePendingRestart)
+                {
+                    updateScheduleLoopIntervalStart = std::chrono::steady_clock::now();
+                    schedulePendingRestart = true;
+                }
+
+                if (schedulePendingRestart && std::chrono::steady_clock::now() - updateScheduleLoopIntervalStart > local_schedule_.interval)
+                {
+                    std::lock_guard<std::mutex> lock(tx_settings_mutex_);
+                    local_schedule_.restart = true;
+                    next_schedule_ = local_schedule_;
+                    local_schedule_ = {};
+                }
+
+                if (!local_schedule_.runtime_queue.empty())
+                {
+                    std::lock_guard<std::mutex> lock(tx_settings_mutex_);
+                    const auto& first = local_schedule_.runtime_queue.top();
+                    if (next_request_ == SerialTXRequest {})
+                    {
+                        next_request_ = first;
+                        local_schedule_.runtime_queue.pop();
+                        tx_requested_ = true;
+                    }
+                }
+
+            }
+
             if (std::chrono::steady_clock::now() - updatePortsTickStart >= PORTS_UPDATE_INTERVAL)
             {
                 updatePortsTickStart = std::chrono::steady_clock::now();
@@ -283,6 +371,10 @@ namespace serialforge
                     ports_changed_semaphore_.release();
                 }
             }
+            if (serial_port_->isOpen())
+                serial_port_->close();
+
+            serial_port_.reset();
         }
     }
 }
