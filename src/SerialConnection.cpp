@@ -37,23 +37,15 @@ namespace serialforge
         serial_thread_= std::thread(&SerialConnection::serialLoop, this);
     }
 
-    bool SerialConnection::open(const SerialPortSettings& settings)
+    void SerialConnection::open(const SerialPortSettings& settings)
     {
         {
             std::lock_guard<std::mutex> lock(settings_mutex_);
-            serial_port_->setBaudRate(settings.baud);
-            serial_port_->setParity(settings.parity);
-            serial_port_->setDataBits(settings.data_bits);
-            serial_port_->setStopBits(settings.stop_bits);
-            serial_port_->setFlowControl(settings.flow_control);
-            serial_port_->setParity(settings.parity);
-            serial_port_->setPortName(settings.path);
             next_settings_ = settings;
             open_requested_ = true;
         }
         requested_semaphore_.release();
 
-        return true;
     }
 
     void SerialConnection::close(const bool& byUser)
@@ -205,7 +197,8 @@ namespace serialforge
             {
                 if (reopen_){
                     std::cout << "Port Connected Reopening" << std::endl;
-                    open(local_settings_);
+                    std::lock_guard<std::mutex> lock(settings_mutex_);
+                    open(next_settings_);
                     reopen_=false;
                 }
             }
@@ -215,6 +208,7 @@ namespace serialforge
 
     void SerialConnection::serialLoop()
     {
+        SerialPortSettings settings;
         serial_port_ = std::make_unique<QSerialPort>();
         const fs::path devPath {"/dev/"};
         {
@@ -228,6 +222,7 @@ namespace serialforge
         auto updatePortsTickStart = std::chrono::steady_clock::now();
         auto updateScheduleLoopIntervalStart = std::chrono::steady_clock::now();
         bool schedulePendingRestart {false};
+        ports_changed_semaphore_.release();
         while (running_)
         {
             requested_semaphore_.try_acquire_for(LOOP_SLEEP);
@@ -240,23 +235,37 @@ namespace serialforge
                 std::cout << "SerialPort::close() OK" << std::endl;
             }
 
-            if (open_requested_)
+            bool should_open {false};
             {
+                std::lock_guard<std::mutex> lock(settings_mutex_);
+                if (open_requested_)
                 {
-                    std::lock_guard<std::mutex> lock(settings_mutex_);
-                    local_settings_ = next_settings_;
+                    should_open = true;
+                    settings = next_settings_;
                 }
+            }
+
+            if (should_open)
+            {
+                serial_port_->setBaudRate(settings.baud);
+                serial_port_->setParity(settings.parity);
+                serial_port_->setDataBits(settings.data_bits);
+                serial_port_->setStopBits(settings.stop_bits);
+                serial_port_->setFlowControl(settings.flow_control);
+                serial_port_->setPortName(settings.path);
                 if (serial_port_->open(QIODevice::ReadWrite))
                 {
-                    std::cout<<std::format("SerialPort::open({}) OK",local_settings_.path.toStdString())<<std::endl;
-                    opened_port_=local_settings_.path;
+                    std::cout<<std::format("SerialPort::open({}) OK",settings.path.toStdString())<<std::endl;
+                    opened_port_=settings.path;
                     isOpen_ = true;
+                    std::lock_guard<std::mutex> lock(settings_mutex_);
                     open_requested_=false;
                 }else
                 {
-                    std::cerr<<std::format("SerialPort::open({}) error ",local_settings_.path.toStdString())<< std::endl;
+                    std::cerr<<std::format("SerialPort::open({}) error ",settings.path.toStdString())<< std::endl;
                 }
             }
+
 
             if (tx_requested_)
             {

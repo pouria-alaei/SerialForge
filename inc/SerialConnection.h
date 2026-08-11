@@ -11,6 +11,10 @@
 
 namespace serialforge
 {
+    constexpr uint BAUDRATES_VALUES[] {115200, 57600, 38400, 19200, 9600, 4800, 2400, 1200};
+    constexpr std::string PARITY_VALUES[] {"NONE","EVEN", "ODD"};
+    constexpr uint8_t STOP_BITS_VALUES[] {1, 2};
+    constexpr uint8_t DATA_BITS_VALUES[] {8, 7, 6, 5};
     struct SerialPortSettings
     {
         QSerialPort::BaudRate baud = QSerialPort::Baud115200;
@@ -62,7 +66,6 @@ namespace serialforge
         mutable std::mutex port_list_mutex_;
         std::binary_semaphore ports_changed_semaphore_ {0};
         QString opened_port_ {};
-        SerialPortSettings local_settings_;
         SerialPortSettings next_settings_;
         bool reopen_ {false};
         bool isOpen_ {false};
@@ -89,7 +92,7 @@ namespace serialforge
         SerialConnection();
         ~SerialConnection();
 
-        bool open(const SerialPortSettings& settings);
+        void open(const SerialPortSettings& settings);
         void close(const bool& byUser);
         bool isOpen() const;
         qint64 send(const QByteArray& data);
