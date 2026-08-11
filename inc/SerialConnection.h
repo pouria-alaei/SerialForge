@@ -50,6 +50,19 @@ namespace serialforge
         bool restart {false};
     };
 
+    enum class SerialConnectionState
+    {
+        Disconnected,
+        Opening,
+        Connected,
+        Reconnecting,
+        Failed
+    };
+    using StateCallback = std::function<void(SerialConnectionState)>;
+    using PortsCallback = std::function<void(std::vector<std::string>)>;
+    using DataRXCallback = std::function<void()>;
+
+
     class SerialConnection
     {
 
@@ -64,28 +77,34 @@ namespace serialforge
         std::atomic<bool> running_{false};
         std::vector<std::string> port_list_{};
         mutable std::mutex port_list_mutex_;
-        std::binary_semaphore ports_changed_semaphore_ {0};
         QString opened_port_ {};
         SerialPortSettings next_settings_;
-        bool reopen_ {false};
-        bool isOpen_ {false};
-        bool open_requested_ {false};
-        bool close_requested_ {false};
+        std::atomic<bool> reopen_ {false};
+        std::atomic<bool> isOpen_ {false};
+        std::atomic<bool> open_requested_ {false};
+        std::atomic<bool> close_requested_ {false};
+
         mutable std::mutex settings_mutex_;
         mutable std::mutex tx_settings_mutex_;
-        bool tx_requested_ {false};
+        mutable std::mutex state_mutex_;
+
+        std::atomic<bool> tx_requested_ {false};
         std::binary_semaphore requested_semaphore_ {0};
         SerialTXSchedule local_schedule_;
         SerialTXSchedule next_schedule_;
         SerialTXRequest local_request_;
         SerialTXRequest next_request_;
-        bool scheduled_ {false};
-        bool txError_ {false};
+        std::atomic<bool> scheduled_ {false};
+        std::atomic<bool> txError_ {false};
 
         std::queue<QByteArray> rx_queue_;
         std::mutex rx_mutex_;
-        std::counting_semaphore<> rx_semaphore_{0};
-
+        SerialConnectionState state_ = SerialConnectionState::Disconnected;
+        StateCallback state_callback_;
+        PortsCallback port_callback_;
+        DataRXCallback data_callback_;
+        void handlePortListChanged_();
+        void handleRx_();
 
     public:
 
@@ -100,11 +119,16 @@ namespace serialforge
         void start();
         void stop();
         bool isRunning() const;
-        std::vector<std::string> getPortList() const;
-        void waitForPortListChanged();
         bool setSchedule(const std::vector<SerialTXRequest>& serial_tx_requests,const bool loop, const std::chrono::milliseconds interval);
         void clearSchedule();
-        QByteArray waitForData();
+        void setStateCallback(StateCallback callback);
+        void setPortsCallback(PortsCallback callback);
+        void setDataRXCallback(DataRXCallback callback);
+
+        bool hasData();
+
+        QByteArray readData();
+
     };
 }
 

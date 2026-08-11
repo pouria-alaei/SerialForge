@@ -11,6 +11,8 @@
 namespace fs = std::filesystem;
 constexpr std::chrono::milliseconds  LOOP_SLEEP {100};
 constexpr std::chrono::milliseconds  PORTS_UPDATE_INTERVAL {500};
+constexpr int RX_CHUNK_SIZE = 1024;
+constexpr int MAX_RX_CHUNKS = 16;
 
 namespace serialforge
 {
@@ -24,6 +26,7 @@ namespace serialforge
     void SerialConnection::stop()
     {
         running_=false;
+        requested_semaphore_.release();
         if (serial_thread_.joinable())
         {
             serial_thread_.join();
@@ -39,13 +42,26 @@ namespace serialforge
 
     void SerialConnection::open(const SerialPortSettings& settings)
     {
-        {
-            std::lock_guard<std::mutex> lock(settings_mutex_);
-            next_settings_ = settings;
-            open_requested_ = true;
-        }
-        requested_semaphore_.release();
+        SerialConnectionState state;
 
+        {
+            {
+                std::lock_guard<std::mutex> lock(settings_mutex_);
+                next_settings_ = settings;
+                open_requested_ = true;
+            }
+
+            std::lock_guard<std::mutex> lock(state_mutex_);
+            state_ = SerialConnectionState::Opening;
+            state = state_;
+        }
+
+        if(state_callback_)
+        {
+            state_callback_(state);
+        }
+
+        requested_semaphore_.release();
     }
 
     void SerialConnection::close(const bool& byUser)
@@ -56,7 +72,7 @@ namespace serialforge
             opened_port_.clear();
         }
 
-        if (!serial_port_->isOpen())
+        if (!isOpen())
         {
             return;
         }
@@ -68,7 +84,6 @@ namespace serialforge
     {
         return isOpen_;
     }
-
 
     qint64 SerialConnection::send(const QByteArray& data)
     {
@@ -92,13 +107,6 @@ namespace serialforge
         tx_requested_ = true;
         requested_semaphore_.release();
         return 0;
-    }
-
-
-    std::vector<std::string> SerialConnection::getPortList() const
-    {
-        std::lock_guard<std::mutex> lock(port_list_mutex_);
-        return port_list_;
     }
 
     bool SerialConnection::setSchedule(const std::vector<SerialTXRequest>& serial_tx_requests,const bool loop, const std::chrono::milliseconds interval)
@@ -162,49 +170,138 @@ namespace serialforge
         }
     }
 
-    QByteArray SerialConnection::waitForData()
+    bool SerialConnection::hasData()
     {
-        rx_semaphore_.acquire();
+        std::lock_guard<std::mutex> lock(rx_mutex_);
+        return !rx_queue_.empty();
+    }
+
+    QByteArray SerialConnection::readData()
+    {
         std::lock_guard<std::mutex> lock(rx_mutex_);
 
-        QByteArray data = std::move(rx_queue_.front());
+        if(rx_queue_.empty())
+            return {};
+
+        auto data = std::move(rx_queue_.front());
         rx_queue_.pop();
 
         return data;
     }
 
-    void SerialConnection::waitForPortListChanged()
+    void SerialConnection::handleRx_()
     {
-        std::vector<std::string> new_port_list = getPortList();
+
+        bool has_new_data = false;
+        int chunks = 0;
+
+        while(serial_port_->bytesAvailable() && chunks < MAX_RX_CHUNKS)
+        {
+            QByteArray data = serial_port_->read(RX_CHUNK_SIZE);
+
+            if(!data.isEmpty())
+            {
+                std::lock_guard<std::mutex> lock(rx_mutex_);
+                rx_queue_.push(std::move(data));
+                has_new_data = true;
+                chunks++;
+            }
+        }
+
+        if(has_new_data && data_callback_)
+            data_callback_();
+    }
+
+
+    void SerialConnection::setStateCallback(StateCallback callback)
+    {
+        state_callback_ = std::move(callback);
+    }
+
+    void SerialConnection::setPortsCallback(PortsCallback callback)
+    {
+        port_callback_ = std::move(callback);
+    }
+
+    void SerialConnection::setDataRXCallback(DataRXCallback callback)
+    {
+        data_callback_ = std::move(callback);
+    }
+
+    void SerialConnection::handlePortListChanged_()
+    {
+        std::vector<std::string> new_port_list;
+
+        {
+            std::lock_guard<std::mutex> lock(port_list_mutex_);
+            new_port_list = port_list_;
+        }
+
         auto last_port = opened_port_.toStdString();
-        for (auto& p: new_port_list)
+
+        for (auto& p : new_port_list)
         {
             p = "/dev/" + p;
             std::cout << "New Port After Change:" << p << std::endl;
         }
+
+        if (port_callback_)
+        {
+            port_callback_(new_port_list);
+        }
+
+
         if (isOpen())
         {
-            std::cout << "Last open port" << opened_port_.toStdString() << std::endl;
+            std::cout << "Last open port: "
+                      << opened_port_.toStdString()
+                      << std::endl;
+
             reopen_ = true;
-            if(std::ranges::find(new_port_list, last_port)==new_port_list.end())
+
+            if (std::ranges::find(new_port_list, last_port) == new_port_list.end())
             {
                 std::cerr << "Port disconnected closing port" << std::endl;
                 close(false);
             }
-        }else
+
+            return;
+        }
+
+
+        if (std::ranges::find(new_port_list, last_port) != new_port_list.end())
         {
-            if(std::ranges::find(new_port_list, last_port)!=new_port_list.end())
+            if (reopen_)
             {
-                if (reopen_){
-                    std::cout << "Port Connected Reopening" << std::endl;
-                    std::lock_guard<std::mutex> lock(settings_mutex_);
-                    open(next_settings_);
-                    reopen_=false;
+                std::cout << "Port Connected Reopening" << std::endl;
+
+                SerialConnectionState state;
+
+                {
+                    std::lock_guard<std::mutex> lock(state_mutex_);
+                    state_ = SerialConnectionState::Reconnecting;
+                    state = state_;
                 }
+
+                if (state_callback_)
+                {
+                    state_callback_(state);
+                }
+
+                SerialPortSettings settings;
+
+                {
+                    std::lock_guard<std::mutex> lock(settings_mutex_);
+                    settings = next_settings_;
+                }
+
+                open(settings);
+
+                reopen_ = false;
             }
         }
-        ports_changed_semaphore_.acquire();
     }
+
 
     void SerialConnection::serialLoop()
     {
@@ -222,16 +319,25 @@ namespace serialforge
         auto updatePortsTickStart = std::chrono::steady_clock::now();
         auto updateScheduleLoopIntervalStart = std::chrono::steady_clock::now();
         bool schedulePendingRestart {false};
-        ports_changed_semaphore_.release();
         while (running_)
         {
             requested_semaphore_.try_acquire_for(LOOP_SLEEP);
+
 
             if (close_requested_)
             {
                 close_requested_ = false;
                 serial_port_->close();
                 isOpen_=false;
+                {
+                    std::lock_guard<std::mutex> lock(state_mutex_);
+                    state_ = SerialConnectionState::Disconnected;
+                }
+
+                if (state_callback_)
+                {
+                    state_callback_(state_);
+                }
                 std::cout << "SerialPort::close() OK" << std::endl;
             }
 
@@ -258,16 +364,47 @@ namespace serialforge
                     std::cout<<std::format("SerialPort::open({}) OK",settings.path.toStdString())<<std::endl;
                     opened_port_=settings.path;
                     isOpen_ = true;
-                    std::lock_guard<std::mutex> lock(settings_mutex_);
                     open_requested_=false;
+                    {
+                        std::lock_guard<std::mutex> lock(state_mutex_);
+                        state_ = SerialConnectionState::Connected;
+                    }
+                    if (state_callback_)
+                    {
+                        state_callback_(state_);
+                    }
                 }else
                 {
-                    std::cerr<<std::format("SerialPort::open({}) error ",settings.path.toStdString())<< std::endl;
+                    SerialConnectionState state;
+
+                    {
+                        std::lock_guard<std::mutex> lock(state_mutex_);
+                        state_ = SerialConnectionState::Failed;
+                        state = state_;
+                    }
+
+                    auto callback = state_callback_;
+
+                    if (callback)
+                    {
+                        callback(state);
+                    }
+
+                    std::cerr << std::format(
+                        "SerialPort::open({}) error ",
+                        settings.path.toStdString()
+                    ) << std::endl;
                 }
             }
 
 
-            if (tx_requested_)
+            bool txRequested = false;
+            {
+                std::lock_guard<std::mutex> lock(tx_settings_mutex_);
+                txRequested=tx_requested_;
+            }
+
+            if (txRequested)
             {
                 {
                     std::lock_guard<std::mutex> lock(tx_settings_mutex_);
@@ -314,7 +451,13 @@ namespace serialforge
                 }
             }
 
-            if (scheduled_)
+            bool scheduled = false;
+            {
+                std::lock_guard<std::mutex> lock(tx_settings_mutex_);
+                scheduled=scheduled_;
+            }
+
+            if (scheduled)
             {
                 if (next_schedule_.restart)
                 {
@@ -366,26 +509,13 @@ namespace serialforge
 
             }
 
-            QByteArray rxData {};
             if (serial_port_!=nullptr)
             {
                 if (serial_port_->isOpen())
                 {
-                    if (serial_port_->waitForReadyRead(5))rxData=serial_port_->readAll();
+                    if (serial_port_->waitForReadyRead(5))handleRx_();
                 }
             }
-
-
-
-            if (!rxData.isEmpty())
-            {
-                {
-                    std::lock_guard<std::mutex> lock(rx_mutex_);
-                    rx_queue_.push(rxData);
-                }
-                rx_semaphore_.release();
-            }
-
 
             if (std::chrono::steady_clock::now() - updatePortsTickStart >= PORTS_UPDATE_INTERVAL)
             {
@@ -408,7 +538,7 @@ namespace serialforge
                 }
                 if (ports_changed)
                 {
-                    ports_changed_semaphore_.release();
+                    handlePortListChanged_();
                 }
             }
         }
