@@ -308,14 +308,6 @@ namespace serialforge
         SerialPortSettings settings;
         serial_port_ = std::make_unique<QSerialPort>();
         const fs::path devPath {"/dev/"};
-        {
-            std::lock_guard<std::mutex> lock(port_list_mutex_);
-            port_list_ =  listPorts(devPath);
-            for (const auto& p: port_list_)
-            {
-                std::cout << p << std::endl;
-            }
-        }
         auto updatePortsTickStart = std::chrono::steady_clock::now();
         auto updateScheduleLoopIntervalStart = std::chrono::steady_clock::now();
         bool schedulePendingRestart {false};

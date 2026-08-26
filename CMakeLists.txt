@@ -25,6 +25,8 @@ add_executable(serialforge src/main.cpp
         inc/common.h
         src/SerialConnection.cpp
         inc/SerialConnection.h
+        src/SerialController.cpp
+        inc/SerialController.h
 )
 target_link_libraries(serialforge
         Qt::Core
@@ -33,3 +35,7 @@ target_link_libraries(serialforge
         Qt::SerialPort
 )
 
+target_include_directories(serialforge PRIVATE
+        ${CMAKE_CURRENT_BINARY_DIR}
+        inc
+)
