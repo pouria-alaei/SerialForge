@@ -179,19 +179,7 @@
         <verstretch>0</verstretch>
        </sizepolicy>
       </property>
-      <property name="minimumSize">
-       <size>
-        <width>0</width>
-        <height>50</height>
-       </size>
-      </property>
-      <property name="maximumSize">
-       <size>
-        <width>16777215</width>
-        <height>50</height>
-       </size>
-      </property>
-      <layout class="QHBoxLayout" name="txLayout" stretch="1,0,0,0,0,0">
+      <layout class="QVBoxLayout" name="txLayout">
        <property name="spacing">
         <number>6</number>
        </property>
@@ -208,18 +196,115 @@
         <number>0</number>
        </property>
        <item>
-        <widget class="QLineEdit" name="txInput">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
+        <layout class="QHBoxLayout" name="lineEndingLayout" stretch="0,0,0,1">
+         <property name="spacing">
+          <number>8</number>
          </property>
-         <property name="placeholderText">
-          <string>Enter a message to send…</string>
+         <property name="leftMargin">
+          <number>0</number>
          </property>
-         <property name="styleSheet">
-          <string>QLineEdit#txInput {
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QCheckBox" name="crCheckBox">
+           <property name="text">
+            <string>CR</string>
+           </property>
+           <property name="toolTip">
+            <string>Carriage return (0x0D)</string>
+           </property>
+           <property name="checked">
+            <bool>false</bool>
+           </property>
+           <attribute name="buttonGroup">
+            <string notr="true">lineEndingButtonGroup</string>
+           </attribute>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="lfCheckBox">
+           <property name="text">
+            <string>LF</string>
+           </property>
+           <property name="toolTip">
+            <string>Line feed (0x0A)</string>
+           </property>
+           <property name="checked">
+            <bool>false</bool>
+           </property>
+           <attribute name="buttonGroup">
+            <string notr="true">lineEndingButtonGroup</string>
+           </attribute>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="crlfCheckBox">
+           <property name="text">
+            <string>CR+LF</string>
+           </property>
+           <property name="toolTip">
+            <string>Carriage return followed by line feed (0x0D 0x0A)</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+           <attribute name="buttonGroup">
+            <string notr="true">lineEndingButtonGroup</string>
+           </attribute>
+          </widget>
+         </item>
+         <item>
+          <spacer name="lineEndingSpacer">
+           <property name="orientation">
+            <enum>Qt::Orientation::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="txInputLayout" stretch="1,0,0">
+         <property name="spacing">
+          <number>8</number>
+         </property>
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QLineEdit" name="txInput">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="placeholderText">
+            <string>Enter a message to send…</string>
+           </property>
+           <property name="styleSheet">
+            <string>QLineEdit#txInput {
  border: 2px solid palette(mid);
  border-radius: 8px;
  padding: 0 10px;
@@ -231,94 +316,46 @@
 QLineEdit#txInput:focus {
  border-color: palette(highlight);
 }</string>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>36</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>16777215</width>
-           <height>36</height>
-          </size>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QCheckBox" name="crCheckBox">
-         <property name="text">
-          <string>CR</string>
-         </property>
-         <property name="toolTip">
-          <string>Carriage return (0x0D)</string>
-         </property>
-         <property name="checked">
-          <bool>false</bool>
-         </property>
-         <attribute name="buttonGroup">
-          <string notr="true">lineEndingButtonGroup</string>
-         </attribute>
-        </widget>
-       </item>
-       <item>
-        <widget class="QCheckBox" name="lfCheckBox">
-         <property name="text">
-          <string>LF</string>
-         </property>
-         <property name="toolTip">
-          <string>Line feed (0x0A)</string>
-         </property>
-         <property name="checked">
-          <bool>false</bool>
-         </property>
-         <attribute name="buttonGroup">
-          <string notr="true">lineEndingButtonGroup</string>
-         </attribute>
-        </widget>
-       </item>
-       <item>
-        <widget class="QCheckBox" name="crlfCheckBox">
-         <property name="text">
-          <string>CR+LF</string>
-         </property>
-         <property name="toolTip">
-          <string>Carriage return followed by line feed (0x0D 0x0A)</string>
-         </property>
-         <property name="checked">
-          <bool>false</bool>
-         </property>
-         <attribute name="buttonGroup">
-          <string notr="true">lineEndingButtonGroup</string>
-         </attribute>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="sendButton">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>100</width>
-           <height>36</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>100</width>
-           <height>36</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>Send</string>
-         </property>
-         <property name="styleSheet">
-          <string>QPushButton#sendButton {
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>36</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>36</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="sendButton">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>100</width>
+             <height>36</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>100</width>
+             <height>36</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Send</string>
+           </property>
+           <property name="styleSheet">
+            <string>QPushButton#sendButton {
  border: 1px solid palette(mid);
  border-radius: 8px;
  padding: 0 12px;
@@ -331,34 +368,34 @@ QPushButton#sendButton:hover, QPushButton#sendButton:focus {
 QPushButton#sendButton:pressed {
  background-color: palette(midlight);
 }</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="uploadFileButton">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>120</width>
-           <height>36</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>120</width>
-           <height>36</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>Upload File</string>
-         </property>
-         <property name="styleSheet">
-          <string>QPushButton#uploadFileButton {
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="uploadFileButton">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>120</width>
+             <height>36</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>120</width>
+             <height>36</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Upload File</string>
+           </property>
+           <property name="styleSheet">
+            <string>QPushButton#uploadFileButton {
  border: 1px solid palette(mid);
  border-radius: 8px;
  padding: 0 12px;
@@ -371,8 +408,10 @@ QPushButton#uploadFileButton:hover, QPushButton#uploadFileButton:focus {
 QPushButton#uploadFileButton:pressed {
  background-color: palette(midlight);
 }</string>
-         </property>
-        </widget>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </item>
       </layout>
      </widget>
