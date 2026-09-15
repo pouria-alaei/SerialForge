@@ -8,6 +8,8 @@
 #include "ui_mainwindow.h"
 
 #include <QAction>
+#include <QFileDialog>
+#include <QSaveFile>
 #include <QLabel>
 #include <QMessageBox>
 #include <QSerialPort>
@@ -47,7 +49,6 @@ MainWindow::MainWindow(SerialController& controller_,QWidget* parent) :
     QMainWindow(parent), ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    ui->menubar->setNativeMenuBar(true);
     ui->statusbar->showMessage("Ready");
 
     portComboBox_ = new QComboBox(this);
@@ -57,6 +58,25 @@ MainWindow::MainWindow(SerialController& controller_,QWidget* parent) :
     parityComboBox_ = new QComboBox(this);
     openPort_ = new QPushButton(this);
     closePort_ = new QPushButton(this);
+
+    auto* toolsModeComboBox = new QComboBox(this);
+    toolsModeComboBox->setObjectName("toolsModeComboBox");
+    toolsModeComboBox->addItems({tr("Disabled"), tr("Hex"), tr("Bin")});
+    toolsModeComboBox->setToolTip(tr("Terminal tools mode"));
+    auto* toolsLabel = new QLabel(tr("Tools:"), this);
+    toolsLabel->setBuddy(toolsModeComboBox);
+    ui->toolBar->addWidget(toolsLabel);
+    ui->toolBar->addWidget(toolsModeComboBox);
+    ui->toolBar->addSeparator();
+
+    const auto updateToolsMode = [this, toolsModeComboBox](int index)
+    {
+        ui->terminalToolsContainer->setVisible(index != 0);
+        ui->terminalToolsPlaceholder->setText(
+            index == 0 ? QString() : tr("%1 tools (coming later)").arg(toolsModeComboBox->itemText(index)));
+    };
+    connect(toolsModeComboBox, &QComboBox::currentIndexChanged, this, updateToolsMode);
+    updateToolsMode(toolsModeComboBox->currentIndex());
 
     //Toolbar For Connection
     ui->toolBar->addWidget(openPort_);
@@ -81,6 +101,35 @@ MainWindow::MainWindow(SerialController& controller_,QWidget* parent) :
     openPort_->setText("Open");
     closePort_->setText("Close");
     portComboBox_->setMinimumWidth(200);
+
+    connect(ui->actionSave, &QAction::triggered, this, [this]()
+    {
+        const QString path = QFileDialog::getSaveFileName(
+            this, tr("Save terminal output"), QString(), tr("Text files (*.txt);;All files (*)"));
+        if (path.isEmpty())
+            return;
+
+        QSaveFile file(path);
+        if (!file.open(QIODevice::WriteOnly))
+        {
+            QMessageBox::warning(this, tr("Save failed"), file.errorString());
+            return;
+        }
+        const QByteArray content = ui->terminalTextEdit->toPlainText().toUtf8();
+        if (file.write(content) != content.size())
+        {
+            const QString error = file.errorString();
+            file.cancelWriting();
+            QMessageBox::warning(this, tr("Save failed"), error);
+            return;
+        }
+        if (!file.commit())
+        {
+            QMessageBox::warning(this, tr("Save failed"), file.errorString());
+            return;
+        }
+        ui->statusbar->showMessage(tr("Terminal output saved"), 3000);
+    });
 
     connect(ui->actionExit, &QAction::triggered, this, &MainWindow::close);
     connect(ui->actionAbout, &QAction::triggered, this, [this]()

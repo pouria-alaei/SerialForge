@@ -17,46 +17,133 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>SerialForge</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout" name="mainLayout">
+   <layout class="QVBoxLayout" name="mainLayout" stretch="1,0">
     <property name="spacing">
-     <number>12</number>
+     <number>8</number>
     </property>
     <property name="leftMargin">
-     <number>12</number>
+     <number>8</number>
     </property>
     <property name="topMargin">
-     <number>12</number>
+     <number>8</number>
     </property>
     <property name="rightMargin">
-     <number>12</number>
+     <number>8</number>
     </property>
     <property name="bottomMargin">
-     <number>12</number>
+     <number>8</number>
     </property>
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout">
+     <layout class="QHBoxLayout" name="terminalRowLayout" stretch="1,0">
+      <property name="spacing">
+       <number>6</number>
+      </property>
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
       <item>
-       <widget class="QPlainTextEdit" name="plainTextEdit">
-        <property name="readOnly">
-         <bool>true</bool>
+       <widget class="QWidget" name="terminalContainer">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
         </property>
+        <layout class="QHBoxLayout" name="terminalLayout" stretch="3,2">
+         <property name="spacing">
+          <number>6</number>
+         </property>
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QPlainTextEdit" name="terminalTextEdit">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
+           <property name="styleSheet">
+            <string>QPlainTextEdit#terminalTextEdit {
+ border: 1px solid palette(mid);
+ border-radius: 10px;
+ padding: 6px;
+ background-color: palette(base);
+}</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QFrame" name="terminalToolsContainer">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="styleSheet">
+            <string>QFrame#terminalToolsContainer {
+ border: 1px solid palette(mid);
+ border-radius: 10px;
+ background-color: palette(base);
+}</string>
+           </property>
+           <layout class="QVBoxLayout" name="terminalToolsLayout">
+            <property name="leftMargin">
+             <number>10</number>
+            </property>
+            <property name="topMargin">
+             <number>10</number>
+            </property>
+            <property name="rightMargin">
+             <number>10</number>
+            </property>
+            <property name="bottomMargin">
+             <number>10</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="terminalToolsPlaceholder">
+              <property name="text">
+               <string>Tools (HEX / BIN)</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignmentFlag::AlignCenter</set>
+              </property>
+              <property name="wordWrap">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
        </widget>
-      </item>
-      <item>
-       <spacer name="verticalSpacer">
-        <property name="orientation">
-         <enum>Qt::Orientation::Vertical</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>20</width>
-          <height>40</height>
-         </size>
-        </property>
-       </spacer>
       </item>
       <item>
        <widget class="QListView" name="listView">
@@ -72,79 +159,218 @@
           <height>16777215</height>
          </size>
         </property>
+        <property name="styleSheet">
+         <string>QListView#listView {
+ border: 1px solid palette(mid);
+ border-radius: 10px;
+ padding: 6px;
+ background-color: palette(base);
+}</string>
+        </property>
        </widget>
-      </item>
-      <item>
-       <layout class="QVBoxLayout" name="verticalLayout"/>
-      </item>
-      <item>
-       <spacer name="verticalSpacer_2">
-        <property name="orientation">
-         <enum>Qt::Orientation::Vertical</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>20</width>
-          <height>40</height>
-         </size>
-        </property>
-       </spacer>
       </item>
      </layout>
     </item>
-    <item alignment="Qt::AlignmentFlag::AlignVCenter">
-     <widget class="QWidget" name="txContainer" native="true">
+    <item>
+     <widget class="QWidget" name="txContainer">
       <property name="sizePolicy">
-       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
         <horstretch>0</horstretch>
         <verstretch>0</verstretch>
        </sizepolicy>
       </property>
       <property name="minimumSize">
        <size>
-        <width>800</width>
-        <height>100</height>
+        <width>0</width>
+        <height>50</height>
        </size>
       </property>
       <property name="maximumSize">
        <size>
         <width>16777215</width>
-        <height>10</height>
+        <height>50</height>
        </size>
       </property>
-      <layout class="QHBoxLayout" name="horizontalLayout_4">
+      <layout class="QHBoxLayout" name="txLayout" stretch="1,0,0,0,0,0">
+       <property name="spacing">
+        <number>6</number>
+       </property>
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
        <item>
         <widget class="QLineEdit" name="txInput">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="placeholderText">
+          <string>Enter a message to send…</string>
+         </property>
+         <property name="styleSheet">
+          <string>QLineEdit#txInput {
+ border: 2px solid palette(mid);
+ border-radius: 8px;
+ padding: 0 10px;
+ background-color: palette(base);
+ color: palette(text);
+ selection-background-color: palette(highlight);
+ selection-color: palette(highlighted-text);
+}
+QLineEdit#txInput:focus {
+ border-color: palette(highlight);
+}</string>
+         </property>
          <property name="minimumSize">
           <size>
            <width>0</width>
-           <height>50</height>
+           <height>36</height>
           </size>
          </property>
-         <property name="baseSize">
+         <property name="maximumSize">
           <size>
-           <width>0</width>
-           <height>50</height>
+           <width>16777215</width>
+           <height>36</height>
           </size>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="send">
+        <widget class="QCheckBox" name="crCheckBox">
+         <property name="text">
+          <string>CR</string>
+         </property>
+         <property name="toolTip">
+          <string>Carriage return (0x0D)</string>
+         </property>
+         <property name="checked">
+          <bool>false</bool>
+         </property>
+         <attribute name="buttonGroup">
+          <string notr="true">lineEndingButtonGroup</string>
+         </attribute>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="lfCheckBox">
+         <property name="text">
+          <string>LF</string>
+         </property>
+         <property name="toolTip">
+          <string>Line feed (0x0A)</string>
+         </property>
+         <property name="checked">
+          <bool>false</bool>
+         </property>
+         <attribute name="buttonGroup">
+          <string notr="true">lineEndingButtonGroup</string>
+         </attribute>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="crlfCheckBox">
+         <property name="text">
+          <string>CR+LF</string>
+         </property>
+         <property name="toolTip">
+          <string>Carriage return followed by line feed (0x0D 0x0A)</string>
+         </property>
+         <property name="checked">
+          <bool>false</bool>
+         </property>
+         <attribute name="buttonGroup">
+          <string notr="true">lineEndingButtonGroup</string>
+         </attribute>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="sendButton">
          <property name="sizePolicy">
-          <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
          </property>
          <property name="minimumSize">
           <size>
-           <width>0</width>
-           <height>50</height>
+           <width>100</width>
+           <height>36</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>100</width>
+           <height>36</height>
           </size>
          </property>
          <property name="text">
-          <string>PushButton</string>
+          <string>Send</string>
+         </property>
+         <property name="styleSheet">
+          <string>QPushButton#sendButton {
+ border: 1px solid palette(mid);
+ border-radius: 8px;
+ padding: 0 12px;
+ background-color: palette(button);
+ color: palette(button-text);
+}
+QPushButton#sendButton:hover, QPushButton#sendButton:focus {
+ border-color: palette(highlight);
+}
+QPushButton#sendButton:pressed {
+ background-color: palette(midlight);
+}</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="uploadFileButton">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>120</width>
+           <height>36</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>120</width>
+           <height>36</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Upload File</string>
+         </property>
+         <property name="styleSheet">
+          <string>QPushButton#uploadFileButton {
+ border: 1px solid palette(mid);
+ border-radius: 8px;
+ padding: 0 12px;
+ background-color: palette(button);
+ color: palette(button-text);
+}
+QPushButton#uploadFileButton:hover, QPushButton#uploadFileButton:focus {
+ border-color: palette(highlight);
+}
+QPushButton#uploadFileButton:pressed {
+ background-color: palette(midlight);
+}</string>
          </property>
         </widget>
        </item>
@@ -154,6 +380,9 @@
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
+   <property name="nativeMenuBar">
+    <bool>false</bool>
+   </property>
    <property name="geometry">
     <rect>
      <x>0</x>
@@ -166,7 +395,15 @@
     <property name="title">
      <string>File</string>
     </property>
+    <addaction name="actionSave"/>
+    <addaction name="separator"/>
     <addaction name="actionExit"/>
+   </widget>
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>View</string>
+    </property>
+    <addaction name="actionTimetag"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -175,6 +412,7 @@
     <addaction name="actionAbout"/>
    </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuView"/>
    <addaction name="menuHelp"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
@@ -189,6 +427,25 @@
     <bool>false</bool>
    </attribute>
   </widget>
+  <action name="actionTimetag">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Timetag</string>
+   </property>
+  </action>
+  <action name="actionSave">
+   <property name="text">
+    <string>Save</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
+   </property>
+  </action>
   <action name="actionExit">
    <property name="text">
     <string>Exit</string>
@@ -205,4 +462,11 @@
  </widget>
  <resources/>
  <connections/>
+ <buttongroups>
+  <buttongroup name="lineEndingButtonGroup">
+   <property name="exclusive">
+    <bool>true</bool>
+   </property>
+  </buttongroup>
+ </buttongroups>
 </ui>
